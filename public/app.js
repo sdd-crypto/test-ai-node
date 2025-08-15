@@ -39,37 +39,45 @@ class AdvancedChatbot {
     }
 
     applySettings() {
-        document.getElementById('temperature').value = this.settings.temperature;
-        document.getElementById('temperatureValue').textContent = this.settings.temperature;
-        document.getElementById('maxTokens').value = this.settings.maxTokens;
-        document.getElementById('streamEnabled').checked = this.settings.streamEnabled;
-        document.getElementById('username').value = this.settings.username;
-        document.getElementById('theme').value = this.settings.theme;
-        
-        const streamToggle = document.getElementById('streamToggle');
-        streamToggle.classList.toggle('active', this.settings.streamEnabled);
+        const tempElement = document.getElementById('temperature');
+        const tempValueElement = document.getElementById('temperatureValue');
+        const maxTokensElement = document.getElementById('maxTokens');
+        const streamEnabledElement = document.getElementById('streamEnabled');
+        const usernameElement = document.getElementById('username');
+        const themeElement = document.getElementById('theme');
+        const streamToggleElement = document.getElementById('streamToggle');
+
+        if (tempElement) tempElement.value = this.settings.temperature;
+        if (tempValueElement) tempValueElement.textContent = this.settings.temperature;
+        if (maxTokensElement) maxTokensElement.value = this.settings.maxTokens;
+        if (streamEnabledElement) streamEnabledElement.checked = this.settings.streamEnabled;
+        if (usernameElement) usernameElement.value = this.settings.username;
+        if (themeElement) themeElement.value = this.settings.theme;
+        if (streamToggleElement) streamToggleElement.classList.toggle('active', this.settings.streamEnabled);
     }
 
     initSocket() {
         this.socket = io();
         
         this.socket.on('connect', () => {
-            console.log('Connected to server');
+            console.log('🔌 Connected to server');
             this.updateConnectionStatus(true);
             this.joinCurrentConversation();
         });
 
         this.socket.on('disconnect', () => {
-            console.log('Disconnected from server');
+            console.log('❌ Disconnected from server');
             this.updateConnectionStatus(false);
         });
 
         this.socket.on('message_received', (data) => {
+            console.log('📨 Message received:', data);
             this.displayMessage(data);
             this.hideTypingIndicator();
         });
 
         this.socket.on('message_start', (data) => {
+            console.log('🚀 Streaming started:', data);
             this.currentMessage = this.createStreamingMessage(data);
         });
 
@@ -80,6 +88,7 @@ class AdvancedChatbot {
         });
 
         this.socket.on('message_complete', (data) => {
+            console.log('✅ Streaming complete');
             if (this.currentMessage) {
                 this.finalizeStreamingMessage(this.currentMessage, data.content);
                 this.currentMessage = null;
@@ -100,6 +109,7 @@ class AdvancedChatbot {
         });
 
         this.socket.on('conversation_history', (history) => {
+            console.log('📜 Loading conversation history:', history);
             this.loadConversationHistory(history);
         });
 
@@ -108,6 +118,7 @@ class AdvancedChatbot {
         });
 
         this.socket.on('error', (error) => {
+            console.error('❌ Socket error:', error);
             this.showError(error.message);
         });
 
@@ -123,58 +134,77 @@ class AdvancedChatbot {
     setupEventListeners() {
         // Temperature slider
         const tempSlider = document.getElementById('temperature');
-        tempSlider.addEventListener('input', (e) => {
-            this.settings.temperature = parseFloat(e.target.value);
-            document.getElementById('temperatureValue').textContent = this.settings.temperature;
-            this.saveSettings();
-        });
+        if (tempSlider) {
+            tempSlider.addEventListener('input', (e) => {
+                this.settings.temperature = parseFloat(e.target.value);
+                const tempValue = document.getElementById('temperatureValue');
+                if (tempValue) tempValue.textContent = this.settings.temperature;
+                this.saveSettings();
+            });
+        }
 
         // Max tokens
         const maxTokensInput = document.getElementById('maxTokens');
-        maxTokensInput.addEventListener('change', (e) => {
-            this.settings.maxTokens = parseInt(e.target.value);
-            this.saveSettings();
-        });
+        if (maxTokensInput) {
+            maxTokensInput.addEventListener('change', (e) => {
+                this.settings.maxTokens = parseInt(e.target.value);
+                this.saveSettings();
+            });
+        }
 
         // Stream toggle
         const streamToggle = document.getElementById('streamEnabled');
-        streamToggle.addEventListener('change', (e) => {
-            this.settings.streamEnabled = e.target.checked;
-            document.getElementById('streamToggle').classList.toggle('active', this.settings.streamEnabled);
-            this.saveSettings();
-        });
+        if (streamToggle) {
+            streamToggle.addEventListener('change', (e) => {
+                this.settings.streamEnabled = e.target.checked;
+                const toggleBtn = document.getElementById('streamToggle');
+                if (toggleBtn) toggleBtn.classList.toggle('active', this.settings.streamEnabled);
+                this.saveSettings();
+            });
+        }
 
         // Username
         const usernameInput = document.getElementById('username');
-        usernameInput.addEventListener('change', (e) => {
-            this.settings.username = e.target.value;
-            this.saveSettings();
-        });
+        if (usernameInput) {
+            usernameInput.addEventListener('change', (e) => {
+                this.settings.username = e.target.value;
+                this.saveSettings();
+            });
+        }
 
         // Theme
         const themeSelect = document.getElementById('theme');
-        themeSelect.addEventListener('change', (e) => {
-            this.settings.theme = e.target.value;
-            this.saveSettings();
-            this.applyTheme();
-        });
+        if (themeSelect) {
+            themeSelect.addEventListener('change', (e) => {
+                this.settings.theme = e.target.value;
+                this.saveSettings();
+                this.applyTheme();
+            });
+        }
 
         // Typing indicators
         const messageInput = document.getElementById('messageInput');
-        let typingTimer;
-        
-        messageInput.addEventListener('input', () => {
-            if (!this.isTyping) {
-                this.isTyping = true;
-                this.socket.emit('typing_start', { conversationId: this.currentConversationId });
-            }
+        if (messageInput) {
+            let typingTimer;
             
-            clearTimeout(typingTimer);
-            typingTimer = setTimeout(() => {
-                this.isTyping = false;
-                this.socket.emit('typing_stop', { conversationId: this.currentConversationId });
-            }, 1000);
-        });
+            messageInput.addEventListener('input', () => {
+                if (!this.isTyping && this.socket) {
+                    this.isTyping = true;
+                    this.socket.emit('typing_start', { conversationId: this.currentConversationId });
+                }
+                
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    this.isTyping = false;
+                    if (this.socket) {
+                        this.socket.emit('typing_stop', { conversationId: this.currentConversationId });
+                    }
+                }, 1000);
+
+                // Update send button
+                this.updateSendButton();
+            });
+        }
 
         // Auto-save conversations
         setInterval(() => {
@@ -186,26 +216,29 @@ class AdvancedChatbot {
         const dropZone = document.getElementById('fileDropZone');
         const body = document.body;
 
-        body.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('active');
-        });
+        if (dropZone) {
+            body.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('active');
+            });
 
-        body.addEventListener('dragleave', (e) => {
-            if (!body.contains(e.relatedTarget)) {
+            body.addEventListener('dragleave', (e) => {
+                if (!body.contains(e.relatedTarget)) {
+                    dropZone.classList.remove('active');
+                }
+            });
+
+            body.addEventListener('drop', (e) => {
+                e.preventDefault();
                 dropZone.classList.remove('active');
-            }
-        });
-
-        body.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('active');
-            this.handleFilesDrop(e.dataTransfer.files);
-        });
+                this.handleFilesDrop(e.dataTransfer.files);
+            });
+        }
     }
 
     joinCurrentConversation() {
-        if (this.currentConversationId) {
+        if (this.currentConversationId && this.socket) {
+            console.log('🔗 Joining conversation:', this.currentConversationId);
             this.socket.emit('join', {
                 conversationId: this.currentConversationId,
                 username: this.settings.username
@@ -231,12 +264,16 @@ class AdvancedChatbot {
             this.joinCurrentConversation();
         }
         
-        document.getElementById('chatTitle').textContent = conversation.title;
+        const chatTitle = document.getElementById('chatTitle');
+        if (chatTitle) chatTitle.textContent = conversation.title;
     }
 
     sendMessage() {
         const input = document.getElementById('messageInput');
+        if (!input) return;
+        
         const message = input.value.trim();
+        console.log('📤 Sending message:', message);
         
         if (!message) return;
 
@@ -251,12 +288,14 @@ class AdvancedChatbot {
         this.autoResize(input);
 
         // Emit message to server
-        this.socket.emit('chat_message', {
-            message,
-            conversationId: this.currentConversationId,
-            options,
-            files: this.uploadedFiles
-        });
+        if (this.socket) {
+            this.socket.emit('chat_message', {
+                message,
+                conversationId: this.currentConversationId,
+                options,
+                files: this.uploadedFiles
+            });
+        }
 
         // Clear uploaded files after sending
         this.uploadedFiles = [];
@@ -266,8 +305,18 @@ class AdvancedChatbot {
         this.updateSendButton();
     }
 
+    // Add missing autoResize method
+    autoResize(textarea) {
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+    }
+
     displayMessage(data) {
         const messagesContainer = document.getElementById('messagesContainer');
+        if (!messagesContainer) return;
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${data.role}`;
         messageDiv.dataset.messageId = data.id;
@@ -303,7 +352,8 @@ class AdvancedChatbot {
             // Update title if it's the first user message
             if (data.role === 'user' && conversation.messages.length <= 2) {
                 conversation.title = data.content.substring(0, 50) + (data.content.length > 50 ? '...' : '');
-                document.getElementById('chatTitle').textContent = conversation.title;
+                const chatTitle = document.getElementById('chatTitle');
+                if (chatTitle) chatTitle.textContent = conversation.title;
                 this.updateConversationsList();
             }
         }
@@ -311,6 +361,8 @@ class AdvancedChatbot {
 
     createStreamingMessage(data) {
         const messagesContainer = document.getElementById('messagesContainer');
+        if (!messagesContainer) return null;
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${data.role}`;
         messageDiv.dataset.messageId = data.id;
@@ -338,6 +390,8 @@ class AdvancedChatbot {
     }
 
     updateStreamingMessage(messageData, chunk) {
+        if (!messageData) return;
+        
         messageData.content += chunk;
         const processedContent = this.processMessageContent(messageData.content);
         messageData.contentDiv.innerHTML = processedContent + '<span class="streaming-cursor">|</span>';
@@ -352,6 +406,8 @@ class AdvancedChatbot {
     }
 
     finalizeStreamingMessage(messageData, finalContent) {
+        if (!messageData) return;
+        
         const processedContent = this.processMessageContent(finalContent);
         messageData.contentDiv.innerHTML = processedContent;
         
@@ -375,18 +431,23 @@ class AdvancedChatbot {
     }
 
     processMessageContent(content) {
-        // Convert markdown to HTML
-        let processed = marked.parse(content);
-        
-        // Apply syntax highlighting to code blocks
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = processed;
-        
-        tempDiv.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightElement(block);
-        });
-        
-        return tempDiv.innerHTML;
+        try {
+            // Convert markdown to HTML
+            let processed = marked.parse(content);
+            
+            // Apply syntax highlighting to code blocks
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = processed;
+            
+            tempDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            
+            return tempDiv.innerHTML;
+        } catch (error) {
+            console.error('Error processing message content:', error);
+            return content; // Return original content if processing fails
+        }
     }
 
     showTypingIndicator() {
@@ -394,6 +455,8 @@ class AdvancedChatbot {
         if (existingIndicator) return;
 
         const messagesContainer = document.getElementById('messagesContainer');
+        if (!messagesContainer) return;
+
         const typingDiv = document.createElement('div');
         typingDiv.className = 'typing-indicator';
         typingDiv.innerHTML = `
@@ -420,23 +483,29 @@ class AdvancedChatbot {
     loadConversationHistory(history) {
         this.clearMessages();
         
-        history.forEach(message => {
-            this.displayMessage(message);
-        });
+        if (Array.isArray(history)) {
+            history.forEach(message => {
+                this.displayMessage(message);
+            });
 
-        if (this.conversations.has(this.currentConversationId)) {
-            const conversation = this.conversations.get(this.currentConversationId);
-            conversation.messages = history;
+            if (this.conversations.has(this.currentConversationId)) {
+                const conversation = this.conversations.get(this.currentConversationId);
+                conversation.messages = history;
+            }
         }
     }
 
     clearMessages() {
         const messagesContainer = document.getElementById('messagesContainer');
-        messagesContainer.innerHTML = '';
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+        }
     }
 
     updateConversationsList() {
         const conversationsList = document.getElementById('conversationsList');
+        if (!conversationsList) return;
+
         conversationsList.innerHTML = '';
 
         const sortedConversations = Array.from(this.conversations.values())
@@ -471,7 +540,8 @@ class AdvancedChatbot {
         const conversation = this.conversations.get(conversationId);
         
         if (conversation) {
-            document.getElementById('chatTitle').textContent = conversation.title;
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatTitle) chatTitle.textContent = conversation.title;
             this.loadConversationHistory(conversation.messages);
             this.updateConversationsList();
             
@@ -504,11 +574,13 @@ class AdvancedChatbot {
                 });
 
                 // Emit file upload to server for analysis
-                this.socket.emit('file_upload', {
-                    fileData,
-                    filename: file.name,
-                    conversationId: this.currentConversationId
-                });
+                if (this.socket) {
+                    this.socket.emit('file_upload', {
+                        fileData,
+                        filename: file.name,
+                        conversationId: this.currentConversationId
+                    });
+                }
 
             } catch (error) {
                 console.error('File processing error:', error);
@@ -540,26 +612,39 @@ class AdvancedChatbot {
 
     updateConnectionStatus(connected) {
         const statusDot = document.querySelector('.status-dot');
-        const statusText = statusDot.nextElementSibling;
+        const statusText = statusDot?.nextElementSibling;
         
-        if (connected) {
-            statusDot.style.background = '#4ade80';
-            statusText.textContent = 'Connected';
-        } else {
-            statusDot.style.background = '#ef4444';
-            statusText.textContent = 'Disconnected';
+        if (statusDot) {
+            statusDot.style.background = connected ? '#4ade80' : '#ef4444';
+        }
+        if (statusText) {
+            statusText.textContent = connected ? 'Connected' : 'Disconnected';
         }
     }
 
     updateUserCount(count) {
         const userCount = document.getElementById('userCount');
-        userCount.innerHTML = `<i class="fas fa-users"></i> <span>${count} user${count !== 1 ? 's' : ''}</span>`;
+        if (userCount) {
+            userCount.innerHTML = `<i class="fas fa-users"></i> <span>${count} user${count !== 1 ? 's' : ''}</span>`;
+        }
     }
 
     updateSendButton() {
         const sendBtn = document.getElementById('sendBtn');
         const input = document.getElementById('messageInput');
-        sendBtn.disabled = !input.value.trim();
+        if (sendBtn && input) {
+            sendBtn.disabled = !input.value.trim();
+        }
+    }
+
+    updateUserTyping(data) {
+        // Handle user typing display
+        console.log('User typing:', data);
+    }
+
+    updateServerStats(stats) {
+        // Handle server stats
+        console.log('Server stats:', stats);
     }
 
     showError(message) {
@@ -595,7 +680,9 @@ class AdvancedChatbot {
 
     scrollToBottom() {
         const messagesContainer = document.getElementById('messagesContainer');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
     }
 
     generateUUID() {
@@ -614,9 +701,13 @@ class AdvancedChatbot {
     loadConversationsFromLocal() {
         const saved = localStorage.getItem('chatbot-conversations');
         if (saved) {
-            const conversationsData = JSON.parse(saved);
-            this.conversations = new Map(conversationsData);
-            this.updateConversationsList();
+            try {
+                const conversationsData = JSON.parse(saved);
+                this.conversations = new Map(conversationsData);
+                this.updateConversationsList();
+            } catch (error) {
+                console.error('Error loading conversations from local storage:', error);
+            }
         }
     }
 
@@ -639,40 +730,58 @@ function handleKeyPress(event) {
         event.preventDefault();
         sendMessage();
     }
-    chatbot.updateSendButton();
+    if (chatbot) chatbot.updateSendButton();
 }
 
 function autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    if (chatbot) {
+        chatbot.autoResize(textarea);
+    } else {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
 }
 
 function sendMessage() {
-    chatbot.sendMessage();
+    if (chatbot) {
+        console.log('🚀 Send button clicked');
+        chatbot.sendMessage();
+    }
 }
 
 function createNewConversation() {
-    chatbot.createNewConversation();
+    if (chatbot) {
+        chatbot.createNewConversation();
+    }
 }
 
 function toggleSettings() {
     const settingsPanel = document.getElementById('settingsPanel');
-    settingsPanel.classList.toggle('open');
+    if (settingsPanel) {
+        settingsPanel.classList.toggle('open');
+    }
 }
 
 function toggleStream() {
     const streamToggle = document.getElementById('streamToggle');
     const streamEnabled = document.getElementById('streamEnabled');
-    streamEnabled.checked = !streamEnabled.checked;
-    streamEnabled.dispatchEvent(new Event('change'));
+    if (streamEnabled) {
+        streamEnabled.checked = !streamEnabled.checked;
+        streamEnabled.dispatchEvent(new Event('change'));
+    }
 }
 
 function uploadFile() {
-    document.getElementById('fileInput').click();
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.click();
+    }
 }
 
 function handleFileUpload(event) {
-    chatbot.handleFileUpload(event);
+    if (chatbot) {
+        chatbot.handleFileUpload(event);
+    }
 }
 
 function toggleMicrophone() {
@@ -681,7 +790,7 @@ function toggleMicrophone() {
 }
 
 function exportConversation() {
-    if (chatbot.currentConversationId && chatbot.conversations.has(chatbot.currentConversationId)) {
+    if (chatbot && chatbot.currentConversationId && chatbot.conversations.has(chatbot.currentConversationId)) {
         const conversation = chatbot.conversations.get(chatbot.currentConversationId);
         const data = JSON.stringify(conversation, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
@@ -698,7 +807,9 @@ function exportConversation() {
 
 // Initialize the chatbot when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Initializing Advanced Chatbot...');
     chatbot = new AdvancedChatbot();
+    console.log('✅ Chatbot initialized successfully');
 });
 
 // Add CSS for streaming cursor animation
